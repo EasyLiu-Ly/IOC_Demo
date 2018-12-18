@@ -1,8 +1,13 @@
-package com.easyliu.test.ioc;
+package com.easyliu.test.ioc.api;
 
 import android.app.Activity;
 import android.view.View;
 
+import com.easyliu.test.annotation.ViewInject;
+
+/**
+ * @author easyliu
+ */
 public class ViewInjector {
 
   private static final String SUFFIX = "$ViewInject";

@@ -9,7 +9,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.easyliu.test.annotation.BindView;
-import com.easyliu.test.ioc.ViewInjector;
+import com.easyliu.test.ioc.api.ViewInjector;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
         mButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "annotation button Test!", Toast.LENGTH_LONG);
+                Toast.makeText(MainActivity.this, "annotation button Test!", Toast.LENGTH_LONG).show();
             }
         });
     }

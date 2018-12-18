@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.Messager;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
@@ -23,10 +22,13 @@ import javax.tools.JavaFileObject;
 
 import static javax.lang.model.element.Modifier.PRIVATE;
 
+/**
+ * @author easyliu
+ */
 @AutoService(Processor.class)
 public class IocProcessor extends AbstractProcessor {
 
-    private Map<String, ProxyInfo> mStringProxyInfoMap = new HashMap<>();
+    private Map<String, ProxyClassInfo> mStringProxyInfoMap = new HashMap<>();
 
     @Override
     public SourceVersion getSupportedSourceVersion() {
@@ -42,44 +44,56 @@ public class IocProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        Messager messager = processingEnv.getMessager();
-        messager.printMessage(Diagnostic.Kind.NOTE, "start process");
+        note("start process");
         mStringProxyInfoMap.clear();
         /*
          * 收集信息
          */
         Set<? extends Element> withBind = roundEnv.getElementsAnnotatedWith(BindView.class);
+        note("遍历所有的element");
+        //遍历所有的element
         for (Element element : withBind) {
+            //判断element是否是合法的
             if (checkAnnotationValid(element, BindView.class)) {
+                //由于这个注解是作用到成员变量上面的，因此强转为VariableElement
                 VariableElement variableElement = (VariableElement) element;
+                //得到类Element
                 TypeElement typeElement = (TypeElement) variableElement.getEnclosingElement();
+                //得到类的全名
                 String fullClassName = typeElement.getQualifiedName().toString();
-                ProxyInfo proxyInfo = mStringProxyInfoMap.get(fullClassName);
-                if (proxyInfo == null) {
-                    proxyInfo = new ProxyInfo(processingEnv.getElementUtils(), typeElement);
-                    mStringProxyInfoMap.put(fullClassName, proxyInfo);
+                //通过类名找到代理类的信息
+                ProxyClassInfo proxyClassInfo = mStringProxyInfoMap.get(fullClassName);
+                //代理类为空就重新创建一个
+                if (proxyClassInfo == null) {
+                    proxyClassInfo = new ProxyClassInfo(processingEnv.getElementUtils(), typeElement);
+                    //把代理类放入数据
+                    mStringProxyInfoMap.put(fullClassName, proxyClassInfo);
                 }
+                //得到BindView这个注解
                 BindView bindView = variableElement.getAnnotation(BindView.class);
-                proxyInfo.mIntegerVariableElementMap.put(bindView.value(), variableElement);
+                //把注解中的id值跟成员变量映射起来
+                proxyClassInfo.mIntegerVariableElementMap.put(bindView.value(), variableElement);
             }
         }
         /*
-         * 写文件
+         * 写文件,遍历数据，把每个代理类写成一个单独的类文件
          */
         for (String key : mStringProxyInfoMap.keySet()) {
-            ProxyInfo proxyInfo = mStringProxyInfoMap.get(key);
+            note("写文件,遍历数据，把每个代理类写成一个单独的类文件");
+            ProxyClassInfo proxyClassInfo = mStringProxyInfoMap.get(key);
             try {
                 JavaFileObject javaFileObject = processingEnv.getFiler()
-                        .createClassFile(proxyInfo.getProxyClassFullName(), proxyInfo.getTypeElement());
+                        .createSourceFile(proxyClassInfo.getProxyClassFullName(), proxyClassInfo.getTypeElement());
                 Writer writer = javaFileObject.openWriter();
-                writer.write(proxyInfo.generateJavaCode());
+                writer.write(proxyClassInfo.generateJavaCode());
                 writer.flush();
                 writer.close();
             } catch (Exception e) {
-                error(proxyInfo.getTypeElement(), "Unable to write injector for type %s: %s",
-                        proxyInfo.getTypeElement(), e.getMessage());
+                error(proxyClassInfo.getTypeElement(), "Unable to write injector for type %s: %s",
+                        proxyClassInfo.getTypeElement(), e.getMessage());
             }
         }
+        note("end process");
         return true;
     }
 
@@ -103,6 +117,17 @@ public class IocProcessor extends AbstractProcessor {
         if (args.length > 0) {
             message = String.format(message, args);
         }
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, message, element);
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);
+    }
+
+    private void note(String message, Object... args) {
+        if (args.length > 0) {
+            message = String.format(message, args);
+        }
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, message);
+    }
+
+    private void note(String message) {
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, message);
     }
 }
