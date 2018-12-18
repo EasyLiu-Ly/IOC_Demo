@@ -22,7 +22,7 @@ public class ProxyInfo {
     String packageName = packageElement.getQualifiedName().toString();
     String className = ClassValidator.getClassName(typeElement, packageName);
     mPackageName = packageName;
-    mProxyClassName = className + "$$" + PROXY;
+    mProxyClassName = className + "$" + PROXY;
   }
 
   public String getProxyClassFullName() {
@@ -44,10 +44,8 @@ public class ProxyInfo {
         .append(mProxyClassName)
         .append(" implements " + ProxyInfo.PROXY + "<" + mTypeElement.getQualifiedName() + ">");
     builder.append(" {\n");
-
     generateMethods(builder);
     builder.append('\n');
-
     builder.append("}\n");
     return builder.toString();
   }
@@ -56,7 +54,6 @@ public class ProxyInfo {
     builder.append("@Override\n ");
     builder.append(
         "public void inject(" + mTypeElement.getQualifiedName() + " host, Object source ) {\n");
-
     for (int id : mIntegerVariableElementMap.keySet()) {
       VariableElement element = mIntegerVariableElementMap.get(id);
       String name = element.getSimpleName().toString();

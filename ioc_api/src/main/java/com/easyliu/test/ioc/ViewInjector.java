@@ -5,23 +5,23 @@ import android.view.View;
 
 public class ViewInjector {
 
-  private static final String SUFFIX = "$$ViewInject";
+  private static final String SUFFIX = "$ViewInject";
 
   public static void injectView(Activity activity) {
-    IViewInject iViewInject = findProxyActivity(activity);
-    iViewInject.inject(activity, activity);
+    ViewInject viewInject = findProxyActivity(activity);
+    viewInject.inject(activity, activity);
   }
 
   public static void injectView(Object object, View view) {
-    IViewInject iViewInject = findProxyActivity(object);
-    iViewInject.inject(object, view);
+    ViewInject viewInject = findProxyActivity(object);
+    viewInject.inject(object, view);
   }
 
-  private static IViewInject findProxyActivity(Object activity) {
+  private static ViewInject findProxyActivity(Object activity) {
     try {
       Class clazz = activity.getClass();
       Class injectorClazz = Class.forName(clazz.getName() + SUFFIX);
-      return (IViewInject) injectorClazz.newInstance();
+      return (ViewInject) injectorClazz.newInstance();
     } catch (ClassNotFoundException e) {
       e.printStackTrace();
     } catch (IllegalAccessException e) {

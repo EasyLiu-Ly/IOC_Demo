@@ -1,5 +1,5 @@
 package com.easyliu.test.ioc;
 
-public interface IViewInject<T> {
+public interface ViewInject<T> {
   void inject(T t, Object source);
 }
