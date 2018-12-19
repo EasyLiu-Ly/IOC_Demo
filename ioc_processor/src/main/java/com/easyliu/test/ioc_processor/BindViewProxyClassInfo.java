@@ -11,7 +11,7 @@ import javax.lang.model.util.Elements;
 /**
  * @author easyliu
  */
-public class ProxyClassInfo {
+public class BindViewProxyClassInfo {
     private String mPackageName;
     private String mProxyClassName;
     private TypeElement mTypeElement;
@@ -20,7 +20,7 @@ public class ProxyClassInfo {
 
     public static final String PROXY = "ViewInject";
 
-    public ProxyClassInfo(Elements elementsUtils, TypeElement typeElement) {
+    public BindViewProxyClassInfo(Elements elementsUtils, TypeElement typeElement) {
         mTypeElement = typeElement;
         PackageElement packageElement = elementsUtils.getPackageOf(typeElement);
         String packageName = packageElement.getQualifiedName().toString();
@@ -39,17 +39,16 @@ public class ProxyClassInfo {
 
     public String generateJavaCode() {
         StringBuilder builder = new StringBuilder();
-        builder.append("// Generated code. Do not modify!\n");
+        builder.append("// Auto generated code. Do not modify!\n");
         builder.append("package ").append(mPackageName).append(";\n\n");
         builder.append("import com.easyliu.test.annotation.*;\n");
         builder.append('\n');
 
         builder.append("public class ")
                 .append(mProxyClassName)
-                .append(" implements " + ProxyClassInfo.PROXY + "<" + mTypeElement.getQualifiedName() + ">");
+                .append(" implements " + BindViewProxyClassInfo.PROXY + "<" + mTypeElement.getQualifiedName() + ">");
         builder.append(" {\n");
         generateMethods(builder);
-        builder.append('\n');
         builder.append("}\n");
         return builder.toString();
     }
@@ -58,18 +57,29 @@ public class ProxyClassInfo {
         builder.append("@Override\n ");
         builder.append(
                 "public void inject(" + mTypeElement.getQualifiedName() + " host, Object source ) {\n");
+        builder.append(" if(source instanceof android.app.Activity){\n");
         for (int id : mIntegerVariableElementMap.keySet()) {
             VariableElement element = mIntegerVariableElementMap.get(id);
             String name = element.getSimpleName().toString();
             String type = element.asType().toString();
-            builder.append(" if(source instanceof android.app.Activity){\n");
             builder.append("host." + name).append(" = ");
             builder.append("(" + type + ")(((android.app.Activity)source).findViewById( " + id + "));\n");
-            builder.append("\n}else{\n");
-            builder.append("host." + name).append(" = ");
-            builder.append("(" + type + ")(((android.view.View)source).findViewById( " + id + "));\n");
-            builder.append("\n};");
         }
+        builder.append("}else if(source instanceof android.view.View){\n");
+        int count = 0;
+        for (int id : mIntegerVariableElementMap.keySet()) {
+            count++;
+            VariableElement element = mIntegerVariableElementMap.get(id);
+            String name = element.getSimpleName().toString();
+            String type = element.asType().toString();
+            builder.append("host." + name).append(" = ");
+            if (count == mIntegerVariableElementMap.size()) {
+                builder.append("(" + type + ")(((android.view.View)source).findViewById( " + id + "));");
+            } else {
+                builder.append("(" + type + ")(((android.view.View)source).findViewById( " + id + "));\n");
+            }
+        }
+        builder.append("\n}");
         builder.append("  }\n");
     }
 

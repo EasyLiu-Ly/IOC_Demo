@@ -28,7 +28,7 @@ import static javax.lang.model.element.Modifier.PRIVATE;
 @AutoService(Processor.class)
 public class IocProcessor extends AbstractProcessor {
 
-    private Map<String, ProxyClassInfo> mStringProxyInfoMap = new HashMap<>();
+    private Map<String, BindViewProxyClassInfo> mStringProxyInfoMap = new HashMap<>();
 
     @Override
     public SourceVersion getSupportedSourceVersion() {
@@ -62,17 +62,17 @@ public class IocProcessor extends AbstractProcessor {
                 //得到类的全名
                 String fullClassName = typeElement.getQualifiedName().toString();
                 //通过类名找到代理类的信息
-                ProxyClassInfo proxyClassInfo = mStringProxyInfoMap.get(fullClassName);
+                BindViewProxyClassInfo bindViewProxyClassInfo = mStringProxyInfoMap.get(fullClassName);
                 //代理类为空就重新创建一个
-                if (proxyClassInfo == null) {
-                    proxyClassInfo = new ProxyClassInfo(processingEnv.getElementUtils(), typeElement);
+                if (bindViewProxyClassInfo == null) {
+                    bindViewProxyClassInfo = new BindViewProxyClassInfo(processingEnv.getElementUtils(), typeElement);
                     //把代理类放入数据
-                    mStringProxyInfoMap.put(fullClassName, proxyClassInfo);
+                    mStringProxyInfoMap.put(fullClassName, bindViewProxyClassInfo);
                 }
                 //得到BindView这个注解
                 BindView bindView = variableElement.getAnnotation(BindView.class);
                 //把注解中的id值跟成员变量映射起来
-                proxyClassInfo.mIntegerVariableElementMap.put(bindView.value(), variableElement);
+                bindViewProxyClassInfo.mIntegerVariableElementMap.put(bindView.value(), variableElement);
             }
         }
         /*
@@ -80,17 +80,17 @@ public class IocProcessor extends AbstractProcessor {
          */
         for (String key : mStringProxyInfoMap.keySet()) {
             note("写文件,遍历数据，把每个代理类写成一个单独的类文件");
-            ProxyClassInfo proxyClassInfo = mStringProxyInfoMap.get(key);
+            BindViewProxyClassInfo bindViewProxyClassInfo = mStringProxyInfoMap.get(key);
             try {
                 JavaFileObject javaFileObject = processingEnv.getFiler()
-                        .createSourceFile(proxyClassInfo.getProxyClassFullName(), proxyClassInfo.getTypeElement());
+                        .createSourceFile(bindViewProxyClassInfo.getProxyClassFullName(), bindViewProxyClassInfo.getTypeElement());
                 Writer writer = javaFileObject.openWriter();
-                writer.write(proxyClassInfo.generateJavaCode());
+                writer.write(bindViewProxyClassInfo.generateJavaCode());
                 writer.flush();
                 writer.close();
             } catch (Exception e) {
-                error(proxyClassInfo.getTypeElement(), "Unable to write injector for type %s: %s",
-                        proxyClassInfo.getTypeElement(), e.getMessage());
+                error(bindViewProxyClassInfo.getTypeElement(), "Unable to write injector for type %s: %s",
+                        bindViewProxyClassInfo.getTypeElement(), e.getMessage());
             }
         }
         note("end process");
